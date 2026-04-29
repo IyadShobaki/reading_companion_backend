@@ -1,6 +1,7 @@
 const router = require("express").Router();
 
 const userRouter = require("./users");
+const libraryRouter = require("./library");
 const { login, createUser } = require("../controllers/users");
 const NotFoundError = require("../utils/errors/NotFoundError");
 const {
@@ -14,6 +15,9 @@ router.post("/signup", validateUserCreate, createUser);
 
 // All /users/* routes — JWT required (enforced inside userRouter)
 router.use("/users", userRouter);
+
+// All /library/* routes — JWT required (enforced inside libraryRouter)
+router.use("/library", libraryRouter);
 
 // Catch-all for any unmatched route
 router.use((req, res, next) => {

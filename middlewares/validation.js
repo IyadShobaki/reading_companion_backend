@@ -58,8 +58,37 @@ const validateUserUpdate = celebrate({
     .or("name", "avatar"),
 });
 
+// Validate POST /library — save a book to the user's library.
+// All book metadata fields are validated here so the controller can trust
+// the data without additional checks.
+const validateSaveBook = celebrate({
+  body: Joi.object().keys({
+    googleBookId: Joi.string().required().messages({
+      "string.empty": "googleBookId is required",
+    }),
+    title: Joi.string().required().messages({
+      "string.empty": "title is required",
+    }),
+    authors: Joi.string().allow(""),
+    thumbnail: Joi.string().allow("").custom(validateURL).messages({
+      "string.uri": "thumbnail must be a valid URL",
+    }),
+    description: Joi.string().allow(""),
+    categories: Joi.string().allow(""),
+    language: Joi.string().allow(""),
+    publishedDate: Joi.string().allow(""),
+    embeddable: Joi.boolean(),
+    viewability: Joi.string().allow(""),
+    publicDomain: Joi.boolean(),
+    webReaderLink: Joi.string().allow("").custom(validateURL).messages({
+      "string.uri": "webReaderLink must be a valid URL",
+    }),
+  }),
+});
+
 module.exports = {
   validateUserCreate,
   validateUserLogin,
   validateUserUpdate,
+  validateSaveBook,
 };
