@@ -86,9 +86,23 @@ const validateSaveBook = celebrate({
   }),
 });
 
+// Validate PUT /progress/:googleBookId — upsert reading progress.
+// pageNumber must be a positive integer (page 0 or below is not meaningful).
+const validateSaveProgress = celebrate({
+  body: Joi.object().keys({
+    pageNumber: Joi.number().integer().min(1).required().messages({
+      "number.base": "pageNumber must be a number",
+      "number.integer": "pageNumber must be an integer",
+      "number.min": "pageNumber must be at least 1",
+      "any.required": "pageNumber is required",
+    }),
+  }),
+});
+
 module.exports = {
   validateUserCreate,
   validateUserLogin,
   validateUserUpdate,
   validateSaveBook,
+  validateSaveProgress,
 };
