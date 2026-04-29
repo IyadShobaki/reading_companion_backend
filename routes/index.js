@@ -3,6 +3,7 @@ const router = require("express").Router();
 const userRouter = require("./users");
 const libraryRouter = require("./library");
 const progressRouter = require("./progress");
+const notesRouter = require("./notes");
 const { login, createUser } = require("../controllers/users");
 const NotFoundError = require("../utils/errors/NotFoundError");
 const {
@@ -22,6 +23,9 @@ router.use("/library", libraryRouter);
 
 // All /progress/* routes — JWT required (enforced inside progressRouter)
 router.use("/progress", progressRouter);
+
+// All /notes/* routes — JWT required (enforced inside notesRouter)
+router.use("/notes", notesRouter);
 
 // Catch-all for any unmatched route
 router.use((req, res, next) => {

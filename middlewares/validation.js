@@ -99,10 +99,57 @@ const validateSaveProgress = celebrate({
   }),
 });
 
+// Validate POST /notes — create a new note.
+// content is required; title and pageNumber are optional but validated when present.
+const validateCreateNote = celebrate({
+  body: Joi.object().keys({
+    googleBookId: Joi.string().required().messages({
+      "string.empty": "googleBookId is required",
+    }),
+    pageNumber: Joi.number().integer().min(1).required().messages({
+      "number.base": "pageNumber must be a number",
+      "number.integer": "pageNumber must be an integer",
+      "number.min": "pageNumber must be at least 1",
+      "any.required": "pageNumber is required",
+    }),
+    content: Joi.string().min(1).max(5000).required().messages({
+      "string.empty": "content is required",
+      "string.min": "content must be at least 1 character",
+      "string.max": "content must be at most 5000 characters",
+    }),
+    title: Joi.string().allow("").max(100).messages({
+      "string.max": "title must be at most 100 characters",
+    }),
+  }),
+});
+
+// Validate PATCH /notes/:noteId — update an existing note.
+// At least one of pageNumber, title, or content must be provided.
+const validateUpdateNote = celebrate({
+  body: Joi.object()
+    .keys({
+      pageNumber: Joi.number().integer().min(1).messages({
+        "number.base": "pageNumber must be a number",
+        "number.integer": "pageNumber must be an integer",
+        "number.min": "pageNumber must be at least 1",
+      }),
+      content: Joi.string().min(1).max(5000).messages({
+        "string.min": "content must be at least 1 character",
+        "string.max": "content must be at most 5000 characters",
+      }),
+      title: Joi.string().allow("").max(100).messages({
+        "string.max": "title must be at most 100 characters",
+      }),
+    })
+    .or("pageNumber", "content", "title"),
+});
+
 module.exports = {
   validateUserCreate,
   validateUserLogin,
   validateUserUpdate,
   validateSaveBook,
   validateSaveProgress,
+  validateCreateNote,
+  validateUpdateNote,
 };
