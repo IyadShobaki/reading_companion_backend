@@ -34,13 +34,19 @@ const buildPreamble = (title, googleBookId, pageNumber) =>
  * @returns {Promise<string>} Raw text response from the model.
  */
 const callGemini = async (prompt) => {
+  if (!GEMINI_API_KEY) {
+    const err = new Error("AI service is not configured.");
+    err.statusCode = 503;
+    throw err;
+  }
+
   const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
+  // Give the timeout error a statusCode so errorHandler surfaces its message.
+  const timeoutError = new Error("AI request timed out. Please try again.");
+  timeoutError.statusCode = 503;
   const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(
-      () => reject(new Error("AI request timed out. Please try again.")),
-      AI_TIMEOUT_MS,
-    ),
+    setTimeout(() => reject(timeoutError), AI_TIMEOUT_MS),
   );
 
   const aiPromise = ai.models
@@ -50,7 +56,34 @@ const callGemini = async (prompt) => {
     })
     .then((result) => result.text);
 
-  return Promise.race([aiPromise, timeoutPromise]);
+  try {
+    return await Promise.race([aiPromise, timeoutPromise]);
+  } catch (err) {
+    // If the error already has a statusCode (e.g. our timeout), rethrow directly.
+    if (err.statusCode) throw err;
+
+    // Gemini SDK ApiError — the message may be a JSON string containing error.code.
+    let apiCode;
+    try {
+      const parsed = JSON.parse(err.message);
+      apiCode = parsed?.error?.code;
+    } catch {
+      /* message is not JSON */
+    }
+
+    if (apiCode === 429) {
+      const retryErr = new Error(
+        "The AI service is currently at capacity. Please try again in a moment.",
+      );
+      retryErr.statusCode = 503;
+      throw retryErr;
+    }
+
+    // Fallback — surface a generic but operational message.
+    const serverErr = new Error("AI request failed. Please try again.");
+    serverErr.statusCode = 500;
+    throw serverErr;
+  }
 };
 
 /**
