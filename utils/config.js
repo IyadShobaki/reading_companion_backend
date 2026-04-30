@@ -7,12 +7,18 @@ const {
   RATE_LIMIT_WINDOW_MS = 900000, // 15 minutes
   RATE_LIMIT_MAX_REQUESTS = 100, // max 100 requests per window - dev env
   RATE_LIMIT_MESSAGE = "Too many requests from this IP, please try again later.",
+  AI_TIMEOUT_MS = 15000,
 } = process.env;
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 if (!JWT_SECRET && process.env.NODE_ENV === "production") {
   throw new Error("FATAL: JWT_SECRET environment variable is not set.");
+}
+
+if (!GEMINI_API_KEY && process.env.NODE_ENV === "production") {
+  throw new Error("FATAL: GEMINI_API_KEY environment variable is not set.");
 }
 
 module.exports = {
@@ -23,4 +29,6 @@ module.exports = {
   RATE_LIMIT_WINDOW_MS: parseInt(RATE_LIMIT_WINDOW_MS, 10),
   RATE_LIMIT_MAX_REQUESTS: parseInt(RATE_LIMIT_MAX_REQUESTS, 10),
   RATE_LIMIT_MESSAGE,
+  GEMINI_API_KEY: GEMINI_API_KEY || "",
+  AI_TIMEOUT_MS: parseInt(AI_TIMEOUT_MS, 10),
 };

@@ -33,6 +33,7 @@ const connectDB = async () => {
  * Called in afterEach.
  */
 const clearDB = async () => {
+  if (mongoose.connection.readyState === 0) return;
   const collections = mongoose.connection.collections;
   for (const key in collections) {
     await collections[key].deleteMany({});
@@ -42,11 +43,25 @@ const clearDB = async () => {
 /**
  * Close the Mongoose connection and stop the in-memory server.
  * Called once per test suite in afterAll.
+ * Guards against the shared-singleton case where another suite may have
+ * already closed the connection when running with --runInBand.
  */
 const disconnectDB = async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  await mongod.stop();
+  try {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.dropDatabase();
+      await mongoose.connection.close();
+    }
+  } catch {
+    // Connection already closed by a sibling suite — safe to ignore.
+  }
+  try {
+    if (mongod) {
+      await mongod.stop();
+    }
+  } catch {
+    // Server already stopped — safe to ignore.
+  }
 };
 
 module.exports = { connectDB, clearDB, disconnectDB };

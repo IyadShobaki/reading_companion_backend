@@ -4,6 +4,7 @@ const userRouter = require("./users");
 const libraryRouter = require("./library");
 const progressRouter = require("./progress");
 const notesRouter = require("./notes");
+const aiRouter = require("./ai");
 const { login, createUser } = require("../controllers/users");
 const NotFoundError = require("../utils/errors/NotFoundError");
 const {
@@ -26,6 +27,9 @@ router.use("/progress", progressRouter);
 
 // All /notes/* routes — JWT required (enforced inside notesRouter)
 router.use("/notes", notesRouter);
+
+// All /ai/* routes — JWT required (enforced inside aiRouter)
+router.use("/ai", aiRouter);
 
 // Catch-all for any unmatched route
 router.use((req, res, next) => {

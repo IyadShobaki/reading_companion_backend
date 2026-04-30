@@ -144,6 +144,48 @@ const validateUpdateNote = celebrate({
     .or("pageNumber", "content", "title"),
 });
 
+// Validate POST /ai/:action — shared body schema for summarize, explain, context.
+const validateAiRequest = celebrate({
+  body: Joi.object().keys({
+    googleBookId: Joi.string().required().messages({
+      "string.empty": "googleBookId is required",
+    }),
+    title: Joi.string().required().messages({
+      "string.empty": "title is required",
+    }),
+    pageNumber: Joi.number().integer().min(1).required().messages({
+      "number.base": "pageNumber must be a number",
+      "number.integer": "pageNumber must be an integer",
+      "number.min": "pageNumber must be at least 1",
+      "any.required": "pageNumber is required",
+    }),
+  }),
+});
+
+// Validate POST /ai/ask — same as above but question is required.
+const validateAiAsk = celebrate({
+  body: Joi.object().keys({
+    googleBookId: Joi.string().required().messages({
+      "string.empty": "googleBookId is required",
+    }),
+    title: Joi.string().required().messages({
+      "string.empty": "title is required",
+    }),
+    pageNumber: Joi.number().integer().min(1).required().messages({
+      "number.base": "pageNumber must be a number",
+      "number.integer": "pageNumber must be an integer",
+      "number.min": "pageNumber must be at least 1",
+      "any.required": "pageNumber is required",
+    }),
+    question: Joi.string().min(1).max(500).required().messages({
+      "string.empty": "question is required",
+      "string.min": "question must be at least 1 character",
+      "string.max": "question must be at most 500 characters",
+      "any.required": "question is required",
+    }),
+  }),
+});
+
 module.exports = {
   validateUserCreate,
   validateUserLogin,
@@ -152,4 +194,6 @@ module.exports = {
   validateSaveProgress,
   validateCreateNote,
   validateUpdateNote,
+  validateAiRequest,
+  validateAiAsk,
 };

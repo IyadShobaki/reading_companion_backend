@@ -22,6 +22,7 @@
     "test:coverage": "jest --runInBand --coverage"
   },
   "dependencies": {
+    "@google/genai": "^1.50.1",
     "bcryptjs": "^3.0.3",
     "celebrate": "^12.1.2",
     "cors": "^2.8.6",
