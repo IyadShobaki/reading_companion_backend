@@ -1,37 +1,26 @@
-/**
- * users.test.js — Unit tests for the users controller.
- *
- * Mongoose models and bcrypt are mocked so these tests are pure logic tests
- * — no database, no real hashing.  We verify that each controller function:
- *   - Calls the right model method with the right args
- *   - Sends the correct HTTP status and response shape on success
- *   - Passes the right error type to next() on failure
- */
-
-const { describe, test, expect } = require("@jest/globals");
+const { describe, test, expect, beforeEach } = require("@jest/globals");
 const jwt = require("jsonwebtoken");
 
-// ── Mock Mongoose User model ─────────────────────────────────────────────────
-jest.mock("../../models/user");
-const User = require("../../models/user");
+jest.mock("../../repositories/user.repository");
+jest.mock("../../services/auth.service");
 
-// ── Import controller after mocks are registered ─────────────────────────────
+const userRepository = require("../../repositories/user.repository");
+const authService = require("../../services/auth.service");
 const {
   createUser,
   login,
   getCurrentUser,
   updateUserProfile,
 } = require("../../controllers/users");
-
 const BadRequestError = require("../../utils/errors/BadRequestError");
 const NotFoundError = require("../../utils/errors/NotFoundError");
 const ConflictError = require("../../utils/errors/ConflictError");
+const UnauthorizedError = require("../../utils/errors/UnauthorizedError");
 
-/**
- * Build a minimal mock req/res/next triple.
- * @param {object} [body] - Request body
- * @param {object} [user] - Simulated req.user (JWT payload)
- */
+const publicUser = { _id: "uid1", email: "a@b.com", name: "Alice", avatar: "" };
+const userDoc = { ...publicUser, password: "hashed" };
+
+/** Build a minimal mock req/res/next triple. */
 const make = ({ body = {}, user = {} } = {}) => {
   const req = { body, user };
   const res = {};
@@ -41,169 +30,170 @@ const make = ({ body = {}, user = {} } = {}) => {
   return { req, res, next };
 };
 
-// ── createUser ────────────────────────────────────────────────────────────────
+beforeEach(() => {
+  jest.clearAllMocks();
+  authService.toPublicUser.mockImplementation((user) => ({
+    _id: user._id,
+    email: user.email,
+    name: user.name,
+    avatar: user.avatar,
+  }));
+});
 
 describe("createUser", () => {
-  const mockUserDoc = {
-    _id: "uid1",
-    email: "a@b.com",
-    name: "Alice",
-    avatar: "",
-  };
-
-  test("hashes the password and calls User.create with the correct fields", async () => {
-    User.create.mockResolvedValue(mockUserDoc);
+  test("hashes the password and creates a user through the repository", async () => {
+    authService.hashPassword.mockResolvedValue("hashed");
+    userRepository.create.mockResolvedValue(userDoc);
     const { req, res, next } = make({
-      body: { email: "a@b.com", password: "secret", name: "Alice" },
+      body: { email: "a@b.com", password: "secret1", name: "Alice" },
     });
 
     await createUser(req, res, next);
 
-    const createArg = User.create.mock.calls[0][0];
-    // Password must be hashed — not stored as plain text
-    expect(createArg.password).not.toBe("secret");
-    expect(createArg.email).toBe("a@b.com");
+    expect(userRepository.create).toHaveBeenCalledWith({
+      email: "a@b.com",
+      password: "hashed",
+      name: "Alice",
+      avatar: undefined,
+    });
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.send).toHaveBeenCalledWith({ data: publicUser });
     expect(next).not.toHaveBeenCalled();
   });
 
-  test("responds with 201 and the public user fields (no password)", async () => {
-    User.create.mockResolvedValue(mockUserDoc);
-    const { req, res, next } = make({
-      body: { email: "a@b.com", password: "secret", name: "Alice" },
-    });
-
-    await createUser(req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(201);
-    const body = res.send.mock.calls[0][0];
-    expect(body).not.toHaveProperty("password");
-    expect(body.email).toBe("a@b.com");
-  });
-
-  test("calls next(BadRequestError) when User.create throws ValidationError", async () => {
-    const err = new Error("v");
+  test("maps repository validation errors to BadRequestError", async () => {
+    const err = new Error("invalid");
     err.name = "ValidationError";
-    User.create.mockRejectedValue(err);
-    const { req, res, next } = make({
-      body: { email: "a@b.com", password: "secret", name: "Alice" },
-    });
+    authService.hashPassword.mockResolvedValue("hashed");
+    userRepository.create.mockRejectedValue(err);
 
+    const { req, res, next } = make({
+      body: { email: "a@b.com", password: "secret1", name: "Alice" },
+    });
     await createUser(req, res, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(BadRequestError));
+    expect(res.send).not.toHaveBeenCalled();
   });
 
-  test("calls next(ConflictError) on MongoDB duplicate key error (11000)", async () => {
-    const err = new Error("dup");
+  test("maps duplicate email errors to ConflictError", async () => {
+    const err = new Error("duplicate");
     err.code = 11000;
-    User.create.mockRejectedValue(err);
-    const { req, res, next } = make({
-      body: { email: "a@b.com", password: "secret", name: "Alice" },
-    });
+    authService.hashPassword.mockResolvedValue("hashed");
+    userRepository.create.mockRejectedValue(err);
 
-    await createUser(req, res, next);
+    const { req, next } = make({
+      body: { email: "a@b.com", password: "secret1", name: "Alice" },
+    });
+    await createUser(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(ConflictError));
   });
 });
 
-// ── login ─────────────────────────────────────────────────────────────────────
-
 describe("login", () => {
-  const mockUser = {
-    _id: "uid1",
-    name: "Alice",
-    email: "a@b.com",
-    avatar: "",
-  };
-
   test("returns a token and public user data on valid credentials", async () => {
-    User.findUserByCredentials = jest.fn().mockResolvedValue(mockUser);
+    userRepository.findByEmailWithPassword.mockResolvedValue(userDoc);
+    authService.verifyPassword.mockResolvedValue();
+    authService.signToken.mockImplementation((userId) =>
+      jwt.sign({ _id: userId }, process.env.JWT_SECRET),
+    );
     const { req, res, next } = make({
-      body: { email: "a@b.com", password: "secret" },
+      body: { email: "a@b.com", password: "secret1" },
     });
 
     await login(req, res, next);
 
+    expect(userRepository.findByEmailWithPassword).toHaveBeenCalledWith(
+      "a@b.com",
+    );
+    expect(authService.verifyPassword).toHaveBeenCalledWith(
+      "secret1",
+      "hashed",
+    );
     const body = res.send.mock.calls[0][0];
-    expect(body.token).toBeDefined();
-    expect(body.data).toMatchObject({ email: "a@b.com", name: "Alice" });
-    expect(body.data).not.toHaveProperty("password");
-    // The token must be a valid JWT
-    const decoded = jwt.decode(body.token);
-    expect(decoded._id).toBe("uid1");
+    expect(body.data).toEqual(publicUser);
+    expect(jwt.decode(body.token)._id).toBe("uid1");
   });
 
-  test("forwards errors from findUserByCredentials directly to next()", async () => {
-    const err = new Error("unauthorized");
-    User.findUserByCredentials = jest.fn().mockRejectedValue(err);
-    const { req, res, next } = make({
+  test("returns UnauthorizedError when no user is found", async () => {
+    userRepository.findByEmailWithPassword.mockResolvedValue(null);
+    const { req, next } = make({
+      body: { email: "missing@b.com", password: "secret1" },
+    });
+
+    await login(req, {}, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
+  });
+
+  test("forwards password verification errors", async () => {
+    const err = new UnauthorizedError();
+    userRepository.findByEmailWithPassword.mockResolvedValue(userDoc);
+    authService.verifyPassword.mockRejectedValue(err);
+    const { req, next } = make({
       body: { email: "a@b.com", password: "wrong" },
     });
 
-    await login(req, res, next);
+    await login(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(err);
   });
 });
 
-// ── getCurrentUser ────────────────────────────────────────────────────────────
-
 describe("getCurrentUser", () => {
-  const mockUser = { _id: "uid1", name: "Alice", email: "a@b.com", avatar: "" };
-
-  test("responds with 200 and wrapped user data", async () => {
-    // findById().orFail() chain
-    const query = { orFail: jest.fn().mockResolvedValue(mockUser) };
-    User.findById = jest.fn().mockReturnValue(query);
-
+  test("responds with wrapped user data", async () => {
+    userRepository.findById.mockResolvedValue(userDoc);
     const { req, res, next } = make({ user: { _id: "uid1" } });
+
     await getCurrentUser(req, res, next);
 
+    expect(userRepository.findById).toHaveBeenCalledWith("uid1");
     expect(res.status).toHaveBeenCalledWith(200);
-    const body = res.send.mock.calls[0][0];
-    expect(body.data).toMatchObject({ email: "a@b.com" });
+    expect(res.send).toHaveBeenCalledWith({ data: publicUser });
   });
 
-  test("calls next(NotFoundError) when orFail throws DocumentNotFoundError", async () => {
-    const err = new Error("nf");
+  test("maps missing users to NotFoundError", async () => {
+    const err = new Error("missing");
     err.name = "DocumentNotFoundError";
-    const query = { orFail: jest.fn().mockRejectedValue(err) };
-    User.findById = jest.fn().mockReturnValue(query);
+    userRepository.findById.mockRejectedValue(err);
+    const { req, next } = make({ user: { _id: "uid1" } });
 
-    const { req, res, next } = make({ user: { _id: "uid1" } });
-    await getCurrentUser(req, res, next);
+    await getCurrentUser(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(NotFoundError));
   });
 });
 
-// ── updateUserProfile ─────────────────────────────────────────────────────────
-
 describe("updateUserProfile", () => {
-  const mockUser = { _id: "uid1", name: "Bob", email: "a@b.com", avatar: "" };
-
-  test("responds with 200 and the updated user", async () => {
-    const query = { orFail: jest.fn().mockResolvedValue(mockUser) };
-    User.findByIdAndUpdate = jest.fn().mockReturnValue(query);
-
-    const { req, res, next } = make({
+  test("builds updates from provided fields only", async () => {
+    const updated = { ...userDoc, name: "Bob" };
+    userRepository.updateProfile.mockResolvedValue(updated);
+    const { req, res } = make({
       body: { name: "Bob" },
       user: { _id: "uid1" },
     });
-    await updateUserProfile(req, res, next);
 
+    await updateUserProfile(req, res, jest.fn());
+
+    expect(userRepository.updateProfile).toHaveBeenCalledWith("uid1", {
+      name: "Bob",
+    });
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.send.mock.calls[0][0].data.name).toBe("Bob");
   });
 
-  test("calls next(NotFoundError) when orFail throws DocumentNotFoundError", async () => {
-    const err = new Error("nf");
+  test("maps missing users to NotFoundError", async () => {
+    const err = new Error("missing");
     err.name = "DocumentNotFoundError";
-    const query = { orFail: jest.fn().mockRejectedValue(err) };
-    User.findByIdAndUpdate = jest.fn().mockReturnValue(query);
-
-    const { req, res, next } = make({
+    userRepository.updateProfile.mockRejectedValue(err);
+    const { req, next } = make({
       body: { name: "Bob" },
       user: { _id: "uid1" },
     });
-    await updateUserProfile(req, res, next);
+
+    await updateUserProfile(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(NotFoundError));
   });
 });

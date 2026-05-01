@@ -1,15 +1,8 @@
-/**
- * library.test.js — Unit tests for the library controller.
- *
- * SavedBook model is mocked — no database involved.
- * Tests verify response shapes, HTTP status codes, and error delegation.
- */
+const { describe, test, expect, beforeEach } = require("@jest/globals");
 
-const { describe, test, expect } = require("@jest/globals");
+jest.mock("../../repositories/savedBook.repository");
 
-jest.mock("../../models/savedBook");
-const SavedBook = require("../../models/savedBook");
-
+const savedBookRepository = require("../../repositories/savedBook.repository");
 const {
   getLibrary,
   saveBook,
@@ -32,115 +25,114 @@ const make = ({ body = {}, params = {}, user = { _id: USER_ID } } = {}) => {
   return { req, res, next };
 };
 
-// ── getLibrary ────────────────────────────────────────────────────────────────
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe("getLibrary", () => {
-  test("responds with 200 and an array of books", async () => {
+  test("responds with the user's books", async () => {
     const books = [{ googleBookId: "g1", title: "Book A" }];
-    const sortable = { sort: jest.fn().mockResolvedValue(books) };
-    SavedBook.find = jest.fn().mockReturnValue(sortable);
+    savedBookRepository.findByUser.mockResolvedValue(books);
 
     const { req, res, next } = make();
     await getLibrary(req, res, next);
 
+    expect(savedBookRepository.findByUser).toHaveBeenCalledWith(USER_ID);
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.send).toHaveBeenCalledWith({ data: books });
   });
 
-  test("calls next(err) on unexpected errors", async () => {
+  test("forwards unexpected repository errors", async () => {
     const err = new Error("db error");
-    SavedBook.find = jest.fn().mockReturnValue({
-      sort: jest.fn().mockRejectedValue(err),
-    });
+    savedBookRepository.findByUser.mockRejectedValue(err);
 
     const { req, res, next } = make();
     await getLibrary(req, res, next);
+
     expect(next).toHaveBeenCalledWith(err);
   });
 });
-
-// ── saveBook ──────────────────────────────────────────────────────────────────
 
 describe("saveBook", () => {
   const bookBody = {
     googleBookId: "g1",
     title: "Book A",
     authors: "Author",
-    thumbnail: "",
-    description: "",
-    categories: "",
-    language: "en",
-    publishedDate: "2020",
-    embeddable: true,
-    viewability: "PARTIAL",
-    publicDomain: false,
-    webReaderLink: "",
   };
 
-  test("responds with 201 and the saved book document", async () => {
+  test("responds with the saved book document", async () => {
     const saved = { ...bookBody, _id: "doc1" };
-    SavedBook.create = jest.fn().mockResolvedValue(saved);
+    savedBookRepository.createForUser.mockResolvedValue(saved);
 
     const { req, res, next } = make({ body: bookBody });
     await saveBook(req, res, next);
 
+    expect(savedBookRepository.createForUser).toHaveBeenCalledWith(
+      USER_ID,
+      bookBody,
+    );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.send).toHaveBeenCalledWith({ data: saved });
   });
 
-  test("calls next(ConflictError) on duplicate key (11000)", async () => {
-    const err = new Error("dup");
+  test("maps duplicate key errors to ConflictError", async () => {
+    const err = new Error("duplicate");
     err.code = 11000;
-    SavedBook.create = jest.fn().mockRejectedValue(err);
+    savedBookRepository.createForUser.mockRejectedValue(err);
 
-    const { req, res, next } = make({ body: bookBody });
-    await saveBook(req, res, next);
+    const { req, next } = make({ body: bookBody });
+    await saveBook(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(ConflictError));
   });
 
-  test("calls next(BadRequestError) on ValidationError", async () => {
-    const err = new Error("v");
+  test("maps validation errors to BadRequestError", async () => {
+    const err = new Error("invalid");
     err.name = "ValidationError";
-    SavedBook.create = jest.fn().mockRejectedValue(err);
+    savedBookRepository.createForUser.mockRejectedValue(err);
 
-    const { req, res, next } = make({ body: bookBody });
-    await saveBook(req, res, next);
+    const { req, next } = make({ body: bookBody });
+    await saveBook(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(BadRequestError));
   });
 });
 
-// ── removeBook ────────────────────────────────────────────────────────────────
-
 describe("removeBook", () => {
-  test("responds with 204 when book found and owned by the user", async () => {
-    const book = {
-      userId: USER_ID,
-      deleteOne: jest.fn().mockResolvedValue({}),
-    };
-    SavedBook.findOne = jest.fn().mockResolvedValue(book);
+  test("deletes the scoped saved book", async () => {
+    const book = { userId: USER_ID };
+    savedBookRepository.findByUserAndGoogleId.mockResolvedValue(book);
+    savedBookRepository.deleteBook.mockResolvedValue({});
 
     const { req, res, next } = make({ params: { googleBookId: "g1" } });
     await removeBook(req, res, next);
 
+    expect(savedBookRepository.findByUserAndGoogleId).toHaveBeenCalledWith(
+      USER_ID,
+      "g1",
+    );
+    expect(savedBookRepository.deleteBook).toHaveBeenCalledWith(book);
     expect(res.status).toHaveBeenCalledWith(204);
-    expect(book.deleteOne).toHaveBeenCalled();
   });
 
-  test("calls next(NotFoundError) when book is not found", async () => {
-    SavedBook.findOne = jest.fn().mockResolvedValue(null);
+  test("maps missing books to NotFoundError", async () => {
+    savedBookRepository.findByUserAndGoogleId.mockResolvedValue(null);
 
-    const { req, res, next } = make({ params: { googleBookId: "missing" } });
-    await removeBook(req, res, next);
+    const { req, next } = make({ params: { googleBookId: "missing" } });
+    await removeBook(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(NotFoundError));
   });
 
-  test("calls next(ForbiddenError) when book belongs to a different user", async () => {
-    const OTHER = { equals: () => false }; // different userId
-    const book = { userId: OTHER, deleteOne: jest.fn() };
-    SavedBook.findOne = jest.fn().mockResolvedValue(book);
+  test("maps ownership mismatch to ForbiddenError", async () => {
+    const otherUserId = { equals: () => false };
+    savedBookRepository.findByUserAndGoogleId.mockResolvedValue({
+      userId: otherUserId,
+    });
 
-    const { req, res, next } = make({ params: { googleBookId: "g1" } });
-    await removeBook(req, res, next);
+    const { req, next } = make({ params: { googleBookId: "g1" } });
+    await removeBook(req, {}, next);
+
     expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
   });
 });

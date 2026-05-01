@@ -1,7 +1,7 @@
 {
   "name": "se_project_express",
   "version": "0.1.0",
-  "description": "Generic Express backend template with authentication, validation, logging, and MongoDB integration.",
+  "description": "Express API for Reading Companion with authentication, library, progress, notes, and Gemini AI endpoints.",
   "homepage": "",
   "bugs": {
     "url": "https://github.com/IyadShobaki"

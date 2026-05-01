@@ -109,6 +109,15 @@ const describeAuthAndValidation = (endpoint, payload) => {
       .send(body);
     expect(res.status).toBe(400);
   });
+
+  test("returns 400 when unknown fields are provided", async () => {
+    const token = await getToken();
+    const res = await request(app)
+      .post(endpoint)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...payload, userId: "other" });
+    expect(res.status).toBe(400);
+  });
 };
 
 // ---------------------------------------------------------------------------
@@ -210,6 +219,16 @@ describe("POST /ai/ask", () => {
       .post("/ai/ask")
       .set("Authorization", `Bearer ${token}`)
       .send(basePayload); // no question field
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 400 when question is too long", async () => {
+    const token = await getToken();
+    const res = await request(app)
+      .post("/ai/ask")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...askPayload, question: "q".repeat(501) });
+
     expect(res.status).toBe(400);
   });
 });

@@ -117,4 +117,25 @@ describe("PUT /progress/:googleBookId", () => {
       .send({ pageNumber: 1 });
     expect(res.status).toBe(401);
   });
+
+  test("returns 400 for unknown fields", async () => {
+    const token = await registerAndGetToken(testUser);
+    const res = await request(app)
+      .put(`/progress/${BOOK_ID}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ pageNumber: 5, userId: "other" });
+
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 400 for oversized googleBookId route params", async () => {
+    const token = await registerAndGetToken(testUser);
+    const longId = "p".repeat(201);
+    const res = await request(app)
+      .put(`/progress/${longId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ pageNumber: 1 });
+
+    expect(res.status).toBe(400);
+  });
 });

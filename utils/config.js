@@ -2,7 +2,7 @@
 // JWT_SECRET is required in production; missing it will crash the process immediately.
 const {
   PORT = 3001,
-  MONGODB_URI = "mongodb://127.0.0.1:27017/template_db",
+  MONGODB_URI = "mongodb://127.0.0.1:27017/rc_db",
   CLIENT_ORIGIN = "http://localhost:3000",
   RATE_LIMIT_WINDOW_MS = 900000, // 15 minutes
   RATE_LIMIT_MAX_REQUESTS = 100, // max 100 requests per window - dev env

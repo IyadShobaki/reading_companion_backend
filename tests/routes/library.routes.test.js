@@ -111,6 +111,28 @@ describe("POST /library", () => {
     const res = await request(app).post("/library").send(bookPayload);
     expect(res.status).toBe(401);
   });
+
+  test("returns 400 for unknown book fields", async () => {
+    const token = await registerAndGetToken(userA);
+    const res = await request(app)
+      .post("/library")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...bookPayload, adminOnly: true });
+
+    expect(res.status).toBe(400);
+  });
+
+  test("trims book metadata before saving", async () => {
+    const token = await registerAndGetToken(userA);
+    const res = await request(app)
+      .post("/library")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...bookPayload, googleBookId: " gbook1 ", title: " Test Book " });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.googleBookId).toBe("gbook1");
+    expect(res.body.data.title).toBe("Test Book");
+  });
 });
 
 // ── DELETE /library/:googleBookId ─────────────────────────────────────────────
@@ -153,5 +175,16 @@ describe("DELETE /library/:googleBookId", () => {
       .delete("/library/nonexistent-book-id")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(404);
+  });
+
+  test("returns 400 for oversized googleBookId route params", async () => {
+    const token = await registerAndGetToken(userA);
+    const longId = "a".repeat(201);
+
+    const res = await request(app)
+      .delete(`/library/${longId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
   });
 });

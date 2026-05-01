@@ -120,6 +120,28 @@ describe("POST /notes", () => {
     const res = await request(app).post("/notes").send(notePayload);
     expect(res.status).toBe(401);
   });
+
+  test("returns 400 for unknown fields", async () => {
+    const token = await registerAndGetToken(userA);
+    const res = await request(app)
+      .post("/notes")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...notePayload, userId: "other" });
+
+    expect(res.status).toBe(400);
+  });
+
+  test("trims note content and title before saving", async () => {
+    const token = await registerAndGetToken(userA);
+    const res = await request(app)
+      .post("/notes")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...notePayload, title: "  Idea  ", content: "  Text  " });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.title).toBe("Idea");
+    expect(res.body.data.content).toBe("Text");
+  });
 });
 
 // ── PATCH /notes/:noteId ──────────────────────────────────────────────────────
@@ -175,6 +197,16 @@ describe("PATCH /notes/:noteId", () => {
       .send({ content: "x" });
     expect(res.status).toBe(401);
   });
+
+  test("returns 400 for invalid noteId params", async () => {
+    const token = await registerAndGetToken(userA);
+    const res = await request(app)
+      .patch("/notes/not-a-valid-id")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ content: "x" });
+
+    expect(res.status).toBe(400);
+  });
 });
 
 // ── DELETE /notes/:noteId ─────────────────────────────────────────────────────
@@ -218,5 +250,14 @@ describe("DELETE /notes/:noteId", () => {
       .delete("/notes/000000000000000000000001")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(404);
+  });
+
+  test("returns 400 for invalid delete noteId params", async () => {
+    const token = await registerAndGetToken(userA);
+    const res = await request(app)
+      .delete("/notes/not-a-valid-id")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
   });
 });

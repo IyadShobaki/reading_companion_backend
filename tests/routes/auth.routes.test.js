@@ -36,9 +36,18 @@ describe("POST /signup", () => {
     const res = await request(app).post("/signup").send(validUser);
 
     expect(res.status).toBe(201);
-    expect(res.body.email).toBe(validUser.email);
-    expect(res.body.name).toBe(validUser.name);
-    expect(res.body).not.toHaveProperty("password");
+    expect(res.body.data.email).toBe(validUser.email);
+    expect(res.body.data.name).toBe(validUser.name);
+    expect(res.body.data).not.toHaveProperty("password");
+  });
+
+  test("trims and lowercases email before creating a user", async () => {
+    const res = await request(app)
+      .post("/signup")
+      .send({ ...validUser, email: " Alice@Example.COM " });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.email).toBe("alice@example.com");
   });
 
   test("returns 409 when the same email is registered twice", async () => {
@@ -49,6 +58,20 @@ describe("POST /signup", () => {
 
   test("returns 400 for missing required fields", async () => {
     const res = await request(app).post("/signup").send({ email: "a@b.com" });
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 400 for short passwords", async () => {
+    const res = await request(app)
+      .post("/signup")
+      .send({ ...validUser, password: "12345" });
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 400 for unknown fields", async () => {
+    const res = await request(app)
+      .post("/signup")
+      .send({ ...validUser, role: "admin" });
     expect(res.status).toBe(400);
   });
 });

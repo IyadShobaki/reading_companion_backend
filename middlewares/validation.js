@@ -1,39 +1,103 @@
 const { Joi, celebrate } = require("celebrate");
 const validator = require("validator");
 
-// Custom URL validation method
+const MAX_URL_LENGTH = 2048;
+const MAX_GOOGLE_BOOK_ID_LENGTH = 200;
+const MAX_BOOK_TITLE_LENGTH = 500;
+const MAX_METADATA_LENGTH = 1000;
+const MAX_DESCRIPTION_LENGTH = 5000;
+const MAX_LANGUAGE_LENGTH = 20;
+const MAX_DATE_LENGTH = 50;
+const MAX_NOTE_TITLE_LENGTH = 100;
+const MAX_NOTE_CONTENT_LENGTH = 5000;
+const MAX_AI_QUESTION_LENGTH = 500;
+
+/**
+ * Validate optional URL fields after Joi has trimmed and length-checked them.
+ * @param {string} value - Candidate URL or empty string.
+ * @param {Object} helpers - Joi helper object.
+ * @returns {string} The original value when valid.
+ */
 const validateURL = (value, helpers) => {
-  if (value === "" || validator.isURL(value)) {
+  if (
+    value === "" ||
+    validator.isURL(value, {
+      require_protocol: true,
+      protocols: ["http", "https"],
+    })
+  ) {
     return value;
   }
   return helpers.error("string.uri");
 };
 
-// Validate user creation
-const validateUserCreate = celebrate({
-  body: Joi.object().keys({
-    email: Joi.string().required().email().messages({
+/**
+ * Build a trimmed, required text schema with a max length.
+ * @param {number} max - Maximum allowed string length.
+ * @returns {Object} Joi string schema.
+ */
+const nonEmptyText = (max) => Joi.string().trim().min(1).max(max);
+
+/**
+ * Build a trimmed optional text schema that allows an empty string.
+ * @param {number} max - Maximum allowed string length.
+ * @returns {Object} Joi string schema.
+ */
+const optionalText = (max) => Joi.string().trim().allow("").max(max);
+
+/**
+ * Build a bounded optional HTTP/HTTPS URL schema.
+ * @returns {Object} Joi string schema.
+ */
+const optionalUrl = () =>
+  Joi.string().trim().allow("").max(MAX_URL_LENGTH).custom(validateURL);
+
+const googleBookId = Joi.string()
+  .trim()
+  .min(1)
+  .max(MAX_GOOGLE_BOOK_ID_LENGTH);
+
+const pageNumber = Joi.number().integer().min(1);
+
+/**
+ * Wrap a body schema that rejects unknown fields.
+ * @param {Object} schema - Joi object schema.
+ * @returns {Function} Celebrate middleware.
+ */
+const strictBody = (schema) => celebrate({ body: schema.unknown(false) });
+
+/**
+ * Wrap a params schema that rejects unknown fields.
+ * @param {Object} schema - Joi object schema.
+ * @returns {Function} Celebrate middleware.
+ */
+const strictParams = (schema) => celebrate({ params: schema.unknown(false) });
+
+const validateUserCreate = strictBody(
+  Joi.object({
+    email: Joi.string().trim().lowercase().required().email().messages({
       "string.empty": "The email field must be filled in",
       "string.email": "The email field must be a valid email",
     }),
-    password: Joi.string().required().messages({
+    password: Joi.string().min(6).required().messages({
       "string.empty": "The password field must be filled in",
+      "string.min": "The password field must be at least 6 characters",
     }),
-    name: Joi.string().required().min(2).max(30).messages({
+    name: Joi.string().trim().required().min(2).max(30).messages({
       "string.min": "The minimum length of the name field is 2",
       "string.max": "The maximum length of the name field is 30",
       "string.empty": "The name field must be filled in",
     }),
-    avatar: Joi.string().allow("").custom(validateURL).messages({
+    avatar: optionalUrl().messages({
       "string.uri": "The avatar field must be a valid URL",
+      "string.max": "The avatar field must be at most 2048 characters",
     }),
   }),
-});
+);
 
-// Validate user login
-const validateUserLogin = celebrate({
-  body: Joi.object().keys({
-    email: Joi.string().required().email().messages({
+const validateUserLogin = strictBody(
+  Joi.object({
+    email: Joi.string().trim().lowercase().required().email().messages({
       "string.empty": "The email field must be filled in",
       "string.email": "The email field must be a valid email",
     }),
@@ -41,156 +105,157 @@ const validateUserLogin = celebrate({
       "string.empty": "The password field must be filled in",
     }),
   }),
-});
+);
 
-// Validate user profile update
-const validateUserUpdate = celebrate({
-  body: Joi.object()
-    .keys({
-      name: Joi.string().min(2).max(30).messages({
-        "string.min": "The minimum length of the name field is 2",
-        "string.max": "The maximum length of the name field is 30",
-      }),
-      avatar: Joi.string().allow("").custom(validateURL).messages({
-        "string.uri": "The avatar field must be a valid URL",
-      }),
-    })
-    .or("name", "avatar"),
-});
-
-// Validate POST /library — save a book to the user's library.
-// All book metadata fields are validated here so the controller can trust
-// the data without additional checks.
-const validateSaveBook = celebrate({
-  body: Joi.object().keys({
-    googleBookId: Joi.string().required().messages({
-      "string.empty": "googleBookId is required",
+const validateUserUpdate = strictBody(
+  Joi.object({
+    name: Joi.string().trim().min(2).max(30).messages({
+      "string.min": "The minimum length of the name field is 2",
+      "string.max": "The maximum length of the name field is 30",
     }),
-    title: Joi.string().required().messages({
+    avatar: optionalUrl().messages({
+      "string.uri": "The avatar field must be a valid URL",
+      "string.max": "The avatar field must be at most 2048 characters",
+    }),
+  }).or("name", "avatar"),
+);
+
+const validateSaveBook = strictBody(
+  Joi.object({
+    googleBookId: googleBookId.required().messages({
+      "string.empty": "googleBookId is required",
+      "string.max": "googleBookId must be at most 200 characters",
+    }),
+    title: nonEmptyText(MAX_BOOK_TITLE_LENGTH).required().messages({
       "string.empty": "title is required",
+      "string.max": "title must be at most 500 characters",
     }),
-    authors: Joi.string().allow(""),
-    thumbnail: Joi.string().allow("").custom(validateURL).messages({
+    authors: optionalText(MAX_METADATA_LENGTH),
+    thumbnail: optionalUrl().messages({
       "string.uri": "thumbnail must be a valid URL",
+      "string.max": "thumbnail must be at most 2048 characters",
     }),
-    description: Joi.string().allow(""),
-    categories: Joi.string().allow(""),
-    language: Joi.string().allow(""),
-    publishedDate: Joi.string().allow(""),
+    description: optionalText(MAX_DESCRIPTION_LENGTH),
+    categories: optionalText(MAX_METADATA_LENGTH),
+    language: optionalText(MAX_LANGUAGE_LENGTH),
+    publishedDate: optionalText(MAX_DATE_LENGTH),
     embeddable: Joi.boolean(),
-    viewability: Joi.string().allow(""),
+    viewability: optionalText(MAX_METADATA_LENGTH),
     publicDomain: Joi.boolean(),
-    webReaderLink: Joi.string().allow("").custom(validateURL).messages({
+    webReaderLink: optionalUrl().messages({
       "string.uri": "webReaderLink must be a valid URL",
+      "string.max": "webReaderLink must be at most 2048 characters",
     }),
   }),
-});
+);
 
-// Validate PUT /progress/:googleBookId — upsert reading progress.
-// pageNumber must be a positive integer (page 0 or below is not meaningful).
-const validateSaveProgress = celebrate({
-  body: Joi.object().keys({
-    pageNumber: Joi.number().integer().min(1).required().messages({
-      "number.base": "pageNumber must be a number",
-      "number.integer": "pageNumber must be an integer",
-      "number.min": "pageNumber must be at least 1",
-      "any.required": "pageNumber is required",
-    }),
-  }),
-});
-
-// Validate POST /notes — create a new note.
-// content is required; title and pageNumber are optional but validated when present.
-const validateCreateNote = celebrate({
-  body: Joi.object().keys({
-    googleBookId: Joi.string().required().messages({
+const validateGoogleBookIdParam = strictParams(
+  Joi.object({
+    googleBookId: googleBookId.required().messages({
       "string.empty": "googleBookId is required",
+      "string.max": "googleBookId must be at most 200 characters",
     }),
-    pageNumber: Joi.number().integer().min(1).required().messages({
+  }),
+);
+
+const validateNoteIdParam = strictParams(
+  Joi.object({
+    noteId: Joi.string().hex().length(24).required().messages({
+      "string.hex": "noteId must be a valid MongoDB ObjectId",
+      "string.length": "noteId must be a valid MongoDB ObjectId",
+    }),
+  }),
+);
+
+const validateSaveProgress = strictBody(
+  Joi.object({
+    pageNumber: pageNumber.required().messages({
       "number.base": "pageNumber must be a number",
       "number.integer": "pageNumber must be an integer",
       "number.min": "pageNumber must be at least 1",
       "any.required": "pageNumber is required",
     }),
-    content: Joi.string().min(1).max(5000).required().messages({
+  }),
+);
+
+const validateCreateNote = strictBody(
+  Joi.object({
+    googleBookId: googleBookId.required().messages({
+      "string.empty": "googleBookId is required",
+      "string.max": "googleBookId must be at most 200 characters",
+    }),
+    pageNumber: pageNumber.required().messages({
+      "number.base": "pageNumber must be a number",
+      "number.integer": "pageNumber must be an integer",
+      "number.min": "pageNumber must be at least 1",
+      "any.required": "pageNumber is required",
+    }),
+    content: nonEmptyText(MAX_NOTE_CONTENT_LENGTH).required().messages({
       "string.empty": "content is required",
       "string.min": "content must be at least 1 character",
       "string.max": "content must be at most 5000 characters",
     }),
-    title: Joi.string().allow("").max(100).messages({
+    title: optionalText(MAX_NOTE_TITLE_LENGTH).messages({
       "string.max": "title must be at most 100 characters",
     }),
   }),
-});
+);
 
-// Validate PATCH /notes/:noteId — update an existing note.
-// At least one of pageNumber, title, or content must be provided.
-const validateUpdateNote = celebrate({
-  body: Joi.object()
-    .keys({
-      pageNumber: Joi.number().integer().min(1).messages({
-        "number.base": "pageNumber must be a number",
-        "number.integer": "pageNumber must be an integer",
-        "number.min": "pageNumber must be at least 1",
-      }),
-      content: Joi.string().min(1).max(5000).messages({
-        "string.min": "content must be at least 1 character",
-        "string.max": "content must be at most 5000 characters",
-      }),
-      title: Joi.string().allow("").max(100).messages({
-        "string.max": "title must be at most 100 characters",
-      }),
-    })
-    .or("pageNumber", "content", "title"),
-});
-
-// Validate POST /ai/:action — shared body schema for summarize, explain, context.
-const validateAiRequest = celebrate({
-  body: Joi.object().keys({
-    googleBookId: Joi.string().required().messages({
-      "string.empty": "googleBookId is required",
-    }),
-    title: Joi.string().required().messages({
-      "string.empty": "title is required",
-    }),
-    pageNumber: Joi.number().integer().min(1).required().messages({
+const validateUpdateNote = strictBody(
+  Joi.object({
+    pageNumber: pageNumber.messages({
       "number.base": "pageNumber must be a number",
       "number.integer": "pageNumber must be an integer",
       "number.min": "pageNumber must be at least 1",
-      "any.required": "pageNumber is required",
     }),
+    content: nonEmptyText(MAX_NOTE_CONTENT_LENGTH).messages({
+      "string.min": "content must be at least 1 character",
+      "string.max": "content must be at most 5000 characters",
+    }),
+    title: optionalText(MAX_NOTE_TITLE_LENGTH).messages({
+      "string.max": "title must be at most 100 characters",
+    }),
+  }).or("pageNumber", "content", "title"),
+);
+
+const aiBaseFields = {
+  googleBookId: googleBookId.required().messages({
+    "string.empty": "googleBookId is required",
+    "string.max": "googleBookId must be at most 200 characters",
   }),
-});
+  title: nonEmptyText(MAX_BOOK_TITLE_LENGTH).required().messages({
+    "string.empty": "title is required",
+    "string.max": "title must be at most 500 characters",
+  }),
+  pageNumber: pageNumber.required().messages({
+    "number.base": "pageNumber must be a number",
+    "number.integer": "pageNumber must be an integer",
+    "number.min": "pageNumber must be at least 1",
+    "any.required": "pageNumber is required",
+  }),
+};
 
-// Validate POST /ai/ask — same as above but question is required.
-const validateAiAsk = celebrate({
-  body: Joi.object().keys({
-    googleBookId: Joi.string().required().messages({
-      "string.empty": "googleBookId is required",
-    }),
-    title: Joi.string().required().messages({
-      "string.empty": "title is required",
-    }),
-    pageNumber: Joi.number().integer().min(1).required().messages({
-      "number.base": "pageNumber must be a number",
-      "number.integer": "pageNumber must be an integer",
-      "number.min": "pageNumber must be at least 1",
-      "any.required": "pageNumber is required",
-    }),
-    question: Joi.string().min(1).max(500).required().messages({
+const validateAiRequest = strictBody(Joi.object(aiBaseFields));
+
+const validateAiAsk = strictBody(
+  Joi.object({
+    ...aiBaseFields,
+    question: nonEmptyText(MAX_AI_QUESTION_LENGTH).required().messages({
       "string.empty": "question is required",
       "string.min": "question must be at least 1 character",
       "string.max": "question must be at most 500 characters",
       "any.required": "question is required",
     }),
   }),
-});
+);
 
 module.exports = {
   validateUserCreate,
   validateUserLogin,
   validateUserUpdate,
   validateSaveBook,
+  validateGoogleBookIdParam,
+  validateNoteIdParam,
   validateSaveProgress,
   validateCreateNote,
   validateUpdateNote,
