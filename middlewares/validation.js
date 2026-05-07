@@ -52,10 +52,7 @@ const optionalText = (max) => Joi.string().trim().allow("").max(max);
 const optionalUrl = () =>
   Joi.string().trim().allow("").max(MAX_URL_LENGTH).custom(validateURL);
 
-const googleBookId = Joi.string()
-  .trim()
-  .min(1)
-  .max(MAX_GOOGLE_BOOK_ID_LENGTH);
+const googleBookId = Joi.string().trim().min(1).max(MAX_GOOGLE_BOOK_ID_LENGTH);
 
 const pageNumber = Joi.number().integer().min(1);
 
@@ -235,8 +232,6 @@ const aiBaseFields = {
   }),
 };
 
-const validateAiRequest = strictBody(Joi.object(aiBaseFields));
-
 const validateAiAsk = strictBody(
   Joi.object({
     ...aiBaseFields,
@@ -259,6 +254,5 @@ module.exports = {
   validateSaveProgress,
   validateCreateNote,
   validateUpdateNote,
-  validateAiRequest,
   validateAiAsk,
 };

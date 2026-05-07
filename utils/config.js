@@ -11,14 +11,14 @@ const {
 } = process.env;
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 if (!JWT_SECRET && process.env.NODE_ENV === "production") {
   throw new Error("FATAL: JWT_SECRET environment variable is not set.");
 }
 
-if (!GEMINI_API_KEY && process.env.NODE_ENV === "production") {
-  throw new Error("FATAL: GEMINI_API_KEY environment variable is not set.");
+if (!OPENAI_API_KEY && process.env.NODE_ENV === "production") {
+  throw new Error("FATAL: OPENAI_API_KEY environment variable is not set.");
 }
 
 module.exports = {
@@ -29,6 +29,6 @@ module.exports = {
   RATE_LIMIT_WINDOW_MS: parseInt(RATE_LIMIT_WINDOW_MS, 10),
   RATE_LIMIT_MAX_REQUESTS: parseInt(RATE_LIMIT_MAX_REQUESTS, 10),
   RATE_LIMIT_MESSAGE,
-  GEMINI_API_KEY: GEMINI_API_KEY || "",
+  OPENAI_API_KEY: OPENAI_API_KEY || "",
   AI_TIMEOUT_MS: parseInt(AI_TIMEOUT_MS, 10),
 };

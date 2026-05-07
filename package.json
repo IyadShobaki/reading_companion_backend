@@ -1,7 +1,7 @@
 {
   "name": "se_project_express",
   "version": "0.1.0",
-  "description": "Express API for Reading Companion with authentication, library, progress, notes, and Gemini AI endpoints.",
+  "description": "Express API for Reading Companion with authentication, library, progress, notes, and OpenAI endpoints.",
   "homepage": "",
   "bugs": {
     "url": "https://github.com/IyadShobaki"
@@ -22,7 +22,6 @@
     "test:coverage": "jest --runInBand --coverage"
   },
   "dependencies": {
-    "@google/genai": "^1.50.1",
     "bcryptjs": "^3.0.3",
     "celebrate": "^12.1.2",
     "cors": "^2.8.6",
@@ -33,6 +32,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.23.1",
+    "openai": "^4.104.0",
     "validator": "^13.15.35",
     "winston": "^3.19.0"
   },

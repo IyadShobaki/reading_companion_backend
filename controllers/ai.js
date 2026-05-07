@@ -1,59 +1,12 @@
 /**
- * ai.js — Controller for AI reading-assistant endpoints.
+ * ai.js — Controller for the AI reading chatbot endpoint.
  *
- * All actions delegate to the AI service layer and return a standard
- * { data: { response } } envelope. The service handles prompting,
- * timeout, and error normalisation so controllers stay thin.
- *
- * /ai/ask additionally requires a `question` field in the body (validated
- * by Celebrate before the controller is reached).
+ * Delegates to the AI service layer and returns a standard
+ * { data: { response } } envelope.
  */
 
 const aiService = require("../services/ai.service");
 const { OK_CODE } = require("../utils/errors");
-
-/**
- * POST /ai/summarize
- */
-const summarize = async (req, res, next) => {
-  try {
-    const { googleBookId, title, pageNumber } = req.body;
-    const result = await aiService.summarize({
-      googleBookId,
-      title,
-      pageNumber,
-    });
-    res.status(OK_CODE).send({ data: result });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * POST /ai/explain
- */
-const explain = async (req, res, next) => {
-  try {
-    const { googleBookId, title, pageNumber } = req.body;
-    const result = await aiService.explain({ googleBookId, title, pageNumber });
-    res.status(OK_CODE).send({ data: result });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * POST /ai/context
- */
-const context = async (req, res, next) => {
-  try {
-    const { googleBookId, title, pageNumber } = req.body;
-    const result = await aiService.context({ googleBookId, title, pageNumber });
-    res.status(OK_CODE).send({ data: result });
-  } catch (err) {
-    next(err);
-  }
-};
 
 /**
  * POST /ai/ask
@@ -75,4 +28,4 @@ const ask = async (req, res, next) => {
   }
 };
 
-module.exports = { summarize, explain, context, ask };
+module.exports = { ask };
