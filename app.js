@@ -34,7 +34,7 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-app.use("/", router);
+app.use("/api", router);
 
 // Error logger - must be after routes, before error handlers
 app.use(errorLogger);

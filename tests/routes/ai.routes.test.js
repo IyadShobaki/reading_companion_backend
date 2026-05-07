@@ -58,9 +58,9 @@ const user = {
 
 /** Register the user and return their JWT token. */
 const getToken = async () => {
-  await request(app).post("/signup").send(user);
+  await request(app).post("/api/signup").send(user);
   const res = await request(app)
-    .post("/signin")
+    .post("/api/signin")
     .send({ email: user.email, password: user.password });
   return res.body.token;
 };
@@ -120,7 +120,7 @@ const describeAuthAndValidation = (endpoint, payload) => {
 // ---------------------------------------------------------------------------
 
 describe("POST /ai/ask", () => {
-  describeAuthAndValidation("/ai/ask", askPayload);
+  describeAuthAndValidation("/api/ai/ask", askPayload);
 
   test("returns 200 with { data: { response } } on success", async () => {
     aiService.ask.mockResolvedValue({
@@ -129,7 +129,7 @@ describe("POST /ai/ask", () => {
     const token = await getToken();
 
     const res = await request(app)
-      .post("/ai/ask")
+      .post("/api/ai/ask")
       .set("Authorization", `Bearer ${token}`)
       .send(askPayload);
 
@@ -143,7 +143,7 @@ describe("POST /ai/ask", () => {
     const token = await getToken();
 
     const res = await request(app)
-      .post("/ai/ask")
+      .post("/api/ai/ask")
       .set("Authorization", `Bearer ${token}`)
       .send(askPayload);
 
@@ -152,9 +152,11 @@ describe("POST /ai/ask", () => {
 
   test("returns 400 when question is missing", async () => {
     const token = await getToken();
-    const { question, ...body } = askPayload;
+    const body = Object.fromEntries(
+      Object.entries(askPayload).filter(([k]) => k !== "question"),
+    );
     const res = await request(app)
-      .post("/ai/ask")
+      .post("/api/ai/ask")
       .set("Authorization", `Bearer ${token}`)
       .send(body);
     expect(res.status).toBe(400);
@@ -163,7 +165,7 @@ describe("POST /ai/ask", () => {
   test("returns 400 when question is too long", async () => {
     const token = await getToken();
     const res = await request(app)
-      .post("/ai/ask")
+      .post("/api/ai/ask")
       .set("Authorization", `Bearer ${token}`)
       .send({ ...askPayload, question: "q".repeat(501) });
 

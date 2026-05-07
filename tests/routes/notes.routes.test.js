@@ -39,9 +39,9 @@ const BOOK_ID = "notes-book-1";
 
 /** Register a user and return their auth token. */
 const registerAndGetToken = async (user) => {
-  await request(app).post("/signup").send(user);
+  await request(app).post("/api/signup").send(user);
   const res = await request(app)
-    .post("/signin")
+    .post("/api/signin")
     .send({ email: user.email, password: user.password });
   return res.body.token;
 };
@@ -60,7 +60,7 @@ describe("GET /notes", () => {
   test("returns 200 and an empty array when the user has no notes", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .get("/notes")
+      .get("/api/notes")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -72,16 +72,16 @@ describe("GET /notes", () => {
 
     // Create notes for two different books
     await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send({ ...notePayload, googleBookId: "book-1" });
     await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send({ ...notePayload, googleBookId: "book-2" });
 
     const res = await request(app)
-      .get("/notes")
+      .get("/api/notes")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -97,13 +97,13 @@ describe("GET /notes", () => {
 
     // userA saves a note
     await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${tokenA}`)
       .send(notePayload);
 
     // userB's GET /notes should return an empty array
     const res = await request(app)
-      .get("/notes")
+      .get("/api/notes")
       .set("Authorization", `Bearer ${tokenB}`);
 
     expect(res.status).toBe(200);
@@ -111,7 +111,7 @@ describe("GET /notes", () => {
   });
 
   test("returns 401 when unauthenticated", async () => {
-    const res = await request(app).get("/notes");
+    const res = await request(app).get("/api/notes");
     expect(res.status).toBe(401);
   });
 });
@@ -122,7 +122,7 @@ describe("GET /notes/:googleBookId", () => {
   test("returns 200 and an empty array when no notes exist", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .get(`/notes/${BOOK_ID}`)
+      .get(`/api/notes/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -135,13 +135,13 @@ describe("GET /notes/:googleBookId", () => {
 
     // userA saves a note
     await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${tokenA}`)
       .send(notePayload);
 
     // userB sees no notes for the same book
     const res = await request(app)
-      .get(`/notes/${BOOK_ID}`)
+      .get(`/api/notes/${BOOK_ID}`)
       .set("Authorization", `Bearer ${tokenB}`);
 
     expect(res.status).toBe(200);
@@ -149,7 +149,7 @@ describe("GET /notes/:googleBookId", () => {
   });
 
   test("returns 401 when unauthenticated", async () => {
-    const res = await request(app).get(`/notes/${BOOK_ID}`);
+    const res = await request(app).get(`/api/notes/${BOOK_ID}`);
     expect(res.status).toBe(401);
   });
 });
@@ -160,7 +160,7 @@ describe("POST /notes", () => {
   test("creates a note and returns 201 with the document", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send(notePayload);
 
@@ -172,21 +172,21 @@ describe("POST /notes", () => {
   test("returns 400 when content is missing", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send({ googleBookId: BOOK_ID, pageNumber: 1 });
     expect(res.status).toBe(400);
   });
 
   test("returns 401 when unauthenticated", async () => {
-    const res = await request(app).post("/notes").send(notePayload);
+    const res = await request(app).post("/api/notes").send(notePayload);
     expect(res.status).toBe(401);
   });
 
   test("returns 400 for unknown fields", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send({ ...notePayload, userId: "other" });
 
@@ -196,7 +196,7 @@ describe("POST /notes", () => {
   test("trims note content and title before saving", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send({ ...notePayload, title: "  Idea  ", content: "  Text  " });
 
@@ -212,13 +212,13 @@ describe("PATCH /notes/:noteId", () => {
   test("updates a note and returns 200 with the updated document for the owner", async () => {
     const token = await registerAndGetToken(userA);
     const createRes = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send(notePayload);
     const noteId = createRes.body.data._id;
 
     const res = await request(app)
-      .patch(`/notes/${noteId}`)
+      .patch(`/api/notes/${noteId}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ content: "Updated note content" });
 
@@ -231,13 +231,13 @@ describe("PATCH /notes/:noteId", () => {
     const tokenB = await registerAndGetToken(userB);
 
     const createRes = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${tokenA}`)
       .send(notePayload);
     const noteId = createRes.body.data._id;
 
     const res = await request(app)
-      .patch(`/notes/${noteId}`)
+      .patch(`/api/notes/${noteId}`)
       .set("Authorization", `Bearer ${tokenB}`)
       .send({ content: "Hijacked" });
 
@@ -247,7 +247,7 @@ describe("PATCH /notes/:noteId", () => {
   test("returns 404 when the note does not exist", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .patch("/notes/000000000000000000000001")
+      .patch("/api/notes/000000000000000000000001")
       .set("Authorization", `Bearer ${token}`)
       .send({ content: "x" });
     expect(res.status).toBe(404);
@@ -255,7 +255,7 @@ describe("PATCH /notes/:noteId", () => {
 
   test("returns 401 when unauthenticated", async () => {
     const res = await request(app)
-      .patch("/notes/000000000000000000000001")
+      .patch("/api/notes/000000000000000000000001")
       .send({ content: "x" });
     expect(res.status).toBe(401);
   });
@@ -263,7 +263,7 @@ describe("PATCH /notes/:noteId", () => {
   test("returns 400 for invalid noteId params", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .patch("/notes/not-a-valid-id")
+      .patch("/api/notes/not-a-valid-id")
       .set("Authorization", `Bearer ${token}`)
       .send({ content: "x" });
 
@@ -277,13 +277,13 @@ describe("DELETE /notes/:noteId", () => {
   test("deletes the note and returns 204 for the owner", async () => {
     const token = await registerAndGetToken(userA);
     const createRes = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${token}`)
       .send(notePayload);
     const noteId = createRes.body.data._id;
 
     const res = await request(app)
-      .delete(`/notes/${noteId}`)
+      .delete(`/api/notes/${noteId}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(204);
@@ -294,13 +294,13 @@ describe("DELETE /notes/:noteId", () => {
     const tokenB = await registerAndGetToken(userB);
 
     const createRes = await request(app)
-      .post("/notes")
+      .post("/api/notes")
       .set("Authorization", `Bearer ${tokenA}`)
       .send(notePayload);
     const noteId = createRes.body.data._id;
 
     const res = await request(app)
-      .delete(`/notes/${noteId}`)
+      .delete(`/api/notes/${noteId}`)
       .set("Authorization", `Bearer ${tokenB}`);
 
     expect(res.status).toBe(403);
@@ -309,7 +309,7 @@ describe("DELETE /notes/:noteId", () => {
   test("returns 404 when note does not exist", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .delete("/notes/000000000000000000000001")
+      .delete("/api/notes/000000000000000000000001")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(404);
   });
@@ -317,7 +317,7 @@ describe("DELETE /notes/:noteId", () => {
   test("returns 400 for invalid delete noteId params", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .delete("/notes/not-a-valid-id")
+      .delete("/api/notes/not-a-valid-id")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(400);

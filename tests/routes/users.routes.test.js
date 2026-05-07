@@ -32,9 +32,9 @@ const validUser = {
 
 /** Helper: register a user and return their auth token. */
 const registerAndLogin = async () => {
-  await request(app).post("/signup").send(validUser);
+  await request(app).post("/api/signup").send(validUser);
   const signinRes = await request(app)
-    .post("/signin")
+    .post("/api/signin")
     .send({ email: validUser.email, password: validUser.password });
   return signinRes.body.token;
 };
@@ -45,7 +45,7 @@ describe("GET /users/me", () => {
   test("returns 200 and the current user's data for authenticated requests", async () => {
     const token = await registerAndLogin();
     const res = await request(app)
-      .get("/users/me")
+      .get("/api/users/me")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -57,7 +57,7 @@ describe("GET /users/me", () => {
   });
 
   test("returns 401 when no Authorization header is provided", async () => {
-    const res = await request(app).get("/users/me");
+    const res = await request(app).get("/api/users/me");
     expect(res.status).toBe(401);
   });
 });
@@ -68,7 +68,7 @@ describe("PATCH /users/me", () => {
   test("updates name/avatar and returns 200 with the updated user", async () => {
     const token = await registerAndLogin();
     const res = await request(app)
-      .patch("/users/me")
+      .patch("/api/users/me")
       .set("Authorization", `Bearer ${token}`)
       .send({ name: "Robert" });
 
@@ -79,14 +79,14 @@ describe("PATCH /users/me", () => {
   test("returns 400 when neither name nor avatar is provided", async () => {
     const token = await registerAndLogin();
     const res = await request(app)
-      .patch("/users/me")
+      .patch("/api/users/me")
       .set("Authorization", `Bearer ${token}`)
       .send({});
     expect(res.status).toBe(400);
   });
 
   test("returns 401 for unauthenticated requests", async () => {
-    const res = await request(app).patch("/users/me").send({ name: "X" });
+    const res = await request(app).patch("/api/users/me").send({ name: "X" });
     expect(res.status).toBe(401);
   });
 });

@@ -63,7 +63,7 @@ npm run test:coverage
 npm run lint
 ```
 
-The API runs on `http://localhost:3001` by default.
+The API runs on `http://localhost:3001/api` by default.
 
 ## API Summary
 

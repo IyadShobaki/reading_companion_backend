@@ -53,9 +53,9 @@ const bookPayload = {
 
 /** Register a user and return their token */
 const registerAndGetToken = async (user) => {
-  await request(app).post("/signup").send(user);
+  await request(app).post("/api/signup").send(user);
   const res = await request(app)
-    .post("/signin")
+    .post("/api/signin")
     .send({ email: user.email, password: user.password });
   return res.body.token;
 };
@@ -66,7 +66,7 @@ describe("GET /library", () => {
   test("returns 200 and an empty array when library is empty", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .get("/library")
+      .get("/api/library")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -74,7 +74,7 @@ describe("GET /library", () => {
   });
 
   test("returns 401 when unauthenticated", async () => {
-    const res = await request(app).get("/library");
+    const res = await request(app).get("/api/library");
     expect(res.status).toBe(401);
   });
 });
@@ -85,7 +85,7 @@ describe("POST /library", () => {
   test("saves a book and returns 201 with the document", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .post("/library")
+      .post("/api/library")
       .set("Authorization", `Bearer ${token}`)
       .send(bookPayload);
 
@@ -96,11 +96,11 @@ describe("POST /library", () => {
   test("returns 409 when saving the same book twice", async () => {
     const token = await registerAndGetToken(userA);
     await request(app)
-      .post("/library")
+      .post("/api/library")
       .set("Authorization", `Bearer ${token}`)
       .send(bookPayload);
     const res = await request(app)
-      .post("/library")
+      .post("/api/library")
       .set("Authorization", `Bearer ${token}`)
       .send(bookPayload);
 
@@ -108,14 +108,14 @@ describe("POST /library", () => {
   });
 
   test("returns 401 when unauthenticated", async () => {
-    const res = await request(app).post("/library").send(bookPayload);
+    const res = await request(app).post("/api/library").send(bookPayload);
     expect(res.status).toBe(401);
   });
 
   test("returns 400 for unknown book fields", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .post("/library")
+      .post("/api/library")
       .set("Authorization", `Bearer ${token}`)
       .send({ ...bookPayload, adminOnly: true });
 
@@ -125,7 +125,7 @@ describe("POST /library", () => {
   test("trims book metadata before saving", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .post("/library")
+      .post("/api/library")
       .set("Authorization", `Bearer ${token}`)
       .send({ ...bookPayload, googleBookId: " gbook1 ", title: " Test Book " });
 
@@ -141,12 +141,12 @@ describe("DELETE /library/:googleBookId", () => {
   test("removes the book and returns 204 for the owner", async () => {
     const token = await registerAndGetToken(userA);
     await request(app)
-      .post("/library")
+      .post("/api/library")
       .set("Authorization", `Bearer ${token}`)
       .send(bookPayload);
 
     const res = await request(app)
-      .delete(`/library/${bookPayload.googleBookId}`)
+      .delete(`/api/library/${bookPayload.googleBookId}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(204);
@@ -157,13 +157,13 @@ describe("DELETE /library/:googleBookId", () => {
     const tokenB = await registerAndGetToken(userB);
 
     await request(app)
-      .post("/library")
+      .post("/api/library")
       .set("Authorization", `Bearer ${tokenA}`)
       .send(bookPayload);
 
     // userB doesn't have this book — findOne filters by userId, so it returns null → 404
     const res = await request(app)
-      .delete(`/library/${bookPayload.googleBookId}`)
+      .delete(`/api/library/${bookPayload.googleBookId}`)
       .set("Authorization", `Bearer ${tokenB}`);
 
     expect(res.status).toBe(404);
@@ -172,7 +172,7 @@ describe("DELETE /library/:googleBookId", () => {
   test("returns 404 when book does not exist", async () => {
     const token = await registerAndGetToken(userA);
     const res = await request(app)
-      .delete("/library/nonexistent-book-id")
+      .delete("/api/library/nonexistent-book-id")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(404);
   });
@@ -182,7 +182,7 @@ describe("DELETE /library/:googleBookId", () => {
     const longId = "a".repeat(201);
 
     const res = await request(app)
-      .delete(`/library/${longId}`)
+      .delete(`/api/library/${longId}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(400);

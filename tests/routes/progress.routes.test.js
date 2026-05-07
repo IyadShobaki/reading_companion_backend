@@ -30,9 +30,9 @@ const testUser = {
 const BOOK_ID = "progress-book-1";
 
 const registerAndGetToken = async (user) => {
-  await request(app).post("/signup").send(user);
+  await request(app).post("/api/signup").send(user);
   const res = await request(app)
-    .post("/signin")
+    .post("/api/signin")
     .send({ email: user.email, password: user.password });
   return res.body.token;
 };
@@ -43,7 +43,7 @@ describe("GET /progress/:googleBookId", () => {
   test("returns 404 when no progress record exists for the book", async () => {
     const token = await registerAndGetToken(testUser);
     const res = await request(app)
-      .get(`/progress/${BOOK_ID}`)
+      .get(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -53,12 +53,12 @@ describe("GET /progress/:googleBookId", () => {
     const token = await registerAndGetToken(testUser);
 
     await request(app)
-      .put(`/progress/${BOOK_ID}`)
+      .put(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ pageNumber: 10 });
 
     const res = await request(app)
-      .get(`/progress/${BOOK_ID}`)
+      .get(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -66,7 +66,7 @@ describe("GET /progress/:googleBookId", () => {
   });
 
   test("returns 401 when unauthenticated", async () => {
-    const res = await request(app).get(`/progress/${BOOK_ID}`);
+    const res = await request(app).get(`/api/progress/${BOOK_ID}`);
     expect(res.status).toBe(401);
   });
 });
@@ -77,7 +77,7 @@ describe("PUT /progress/:googleBookId", () => {
   test("creates progress and returns 200 with the data", async () => {
     const token = await registerAndGetToken(testUser);
     const res = await request(app)
-      .put(`/progress/${BOOK_ID}`)
+      .put(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ pageNumber: 5 });
 
@@ -89,12 +89,12 @@ describe("PUT /progress/:googleBookId", () => {
   test("updates existing progress when called again (upsert)", async () => {
     const token = await registerAndGetToken(testUser);
     await request(app)
-      .put(`/progress/${BOOK_ID}`)
+      .put(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ pageNumber: 5 });
 
     const res = await request(app)
-      .put(`/progress/${BOOK_ID}`)
+      .put(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ pageNumber: 20 });
 
@@ -105,7 +105,7 @@ describe("PUT /progress/:googleBookId", () => {
   test("returns 400 when pageNumber is missing", async () => {
     const token = await registerAndGetToken(testUser);
     const res = await request(app)
-      .put(`/progress/${BOOK_ID}`)
+      .put(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`)
       .send({});
     expect(res.status).toBe(400);
@@ -113,7 +113,7 @@ describe("PUT /progress/:googleBookId", () => {
 
   test("returns 401 when unauthenticated", async () => {
     const res = await request(app)
-      .put(`/progress/${BOOK_ID}`)
+      .put(`/api/progress/${BOOK_ID}`)
       .send({ pageNumber: 1 });
     expect(res.status).toBe(401);
   });
@@ -121,7 +121,7 @@ describe("PUT /progress/:googleBookId", () => {
   test("returns 400 for unknown fields", async () => {
     const token = await registerAndGetToken(testUser);
     const res = await request(app)
-      .put(`/progress/${BOOK_ID}`)
+      .put(`/api/progress/${BOOK_ID}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ pageNumber: 5, userId: "other" });
 
@@ -132,7 +132,7 @@ describe("PUT /progress/:googleBookId", () => {
     const token = await registerAndGetToken(testUser);
     const longId = "p".repeat(201);
     const res = await request(app)
-      .put(`/progress/${longId}`)
+      .put(`/api/progress/${longId}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ pageNumber: 1 });
 
