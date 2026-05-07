@@ -51,8 +51,16 @@ const updateById = (noteId, updates) =>
  */
 const deleteNote = (note) => note.deleteOne();
 
+/**
+ * Find all notes for a user across all books, newest first.
+ * @param {string} userId - Authenticated user id.
+ * @returns {Promise<Object[]>} Note documents.
+ */
+const findByUser = (userId) => Note.find({ userId }).sort({ updatedAt: -1 });
+
 module.exports = {
   findByUserAndBook,
+  findByUser,
   createForUser,
   findById,
   updateById,

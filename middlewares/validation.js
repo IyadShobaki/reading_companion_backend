@@ -230,6 +230,13 @@ const aiBaseFields = {
     "number.min": "pageNumber must be at least 1",
     "any.required": "pageNumber is required",
   }),
+  // Optional enrichment fields — used to give the AI more context
+  authors: Joi.array().items(Joi.string().trim().max(200)).max(10).optional(),
+  description: Joi.string().trim().max(2000).allow("").optional(),
+  categories: Joi.array()
+    .items(Joi.string().trim().max(100))
+    .max(20)
+    .optional(),
 };
 
 const validateAiAsk = strictBody(

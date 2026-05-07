@@ -54,6 +54,68 @@ const notePayload = {
   title: "Chapter 2",
 };
 
+// ── GET /notes — all notes for the authenticated user ────────────────────────
+
+describe("GET /notes", () => {
+  test("returns 200 and an empty array when the user has no notes", async () => {
+    const token = await registerAndGetToken(userA);
+    const res = await request(app)
+      .get("/notes")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  test("returns all notes for the authenticated user across all books", async () => {
+    const token = await registerAndGetToken(userA);
+
+    // Create notes for two different books
+    await request(app)
+      .post("/notes")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...notePayload, googleBookId: "book-1" });
+    await request(app)
+      .post("/notes")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ...notePayload, googleBookId: "book-2" });
+
+    const res = await request(app)
+      .get("/notes")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+    const bookIds = res.body.data.map((n) => n.googleBookId);
+    expect(bookIds).toContain("book-1");
+    expect(bookIds).toContain("book-2");
+  });
+
+  test("does not return notes belonging to another user", async () => {
+    const tokenA = await registerAndGetToken(userA);
+    const tokenB = await registerAndGetToken(userB);
+
+    // userA saves a note
+    await request(app)
+      .post("/notes")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send(notePayload);
+
+    // userB's GET /notes should return an empty array
+    const res = await request(app)
+      .get("/notes")
+      .set("Authorization", `Bearer ${tokenB}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  test("returns 401 when unauthenticated", async () => {
+    const res = await request(app).get("/notes");
+    expect(res.status).toBe(401);
+  });
+});
+
 // ── GET /notes/:googleBookId ──────────────────────────────────────────────────
 
 describe("GET /notes/:googleBookId", () => {

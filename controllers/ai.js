@@ -15,12 +15,23 @@ const { OK_CODE } = require("../utils/errors");
  */
 const ask = async (req, res, next) => {
   try {
-    const { googleBookId, title, pageNumber, question } = req.body;
+    const {
+      googleBookId,
+      title,
+      pageNumber,
+      question,
+      authors,
+      description,
+      categories,
+    } = req.body;
     const result = await aiService.ask({
       googleBookId,
       title,
       pageNumber,
       question,
+      authors,
+      description,
+      categories,
     });
     res.status(OK_CODE).send({ data: result });
   } catch (err) {

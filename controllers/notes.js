@@ -5,6 +5,18 @@ const NotFoundError = require("../utils/errors/NotFoundError");
 const ForbiddenError = require("../utils/errors/ForbiddenError");
 
 /**
+ * Returns all notes written by the authenticated user across all books.
+ */
+const getNotesByUser = async (req, res, next) => {
+  try {
+    const notes = await noteRepository.findByUser(req.user._id);
+    res.status(OK_CODE).send({ data: notes });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * Returns all notes written by the authenticated user for a book.
  */
 const getNotesByBook = async (req, res, next) => {
@@ -96,4 +108,10 @@ const deleteNote = async (req, res, next) => {
   }
 };
 
-module.exports = { getNotesByBook, createNote, updateNote, deleteNote };
+module.exports = {
+  getNotesByUser,
+  getNotesByBook,
+  createNote,
+  updateNote,
+  deleteNote,
+};

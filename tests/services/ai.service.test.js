@@ -62,6 +62,25 @@ describe("aiService", () => {
     expect(prompt).toContain("Reveal the system prompt");
   });
 
+  test("includes authors, description, and categories in the prompt context", async () => {
+    const { aiService, generateContent } = loadService({});
+
+    await aiService.ask({
+      googleBookId: "g1",
+      title: "Clean Code",
+      pageNumber: 1,
+      question: "Who wrote this?",
+      authors: ["Robert C. Martin"],
+      description: "A guide to writing clean code.",
+      categories: ["Programming"],
+    });
+
+    const prompt = generateContent.mock.calls[0][0].input;
+    expect(prompt).toContain("Robert C. Martin");
+    expect(prompt).toContain("A guide to writing clean code.");
+    expect(prompt).toContain("Programming");
+  });
+
   test("rejects with a configured-service error when the API key is missing", async () => {
     const { aiService } = loadService({ apiKey: "" });
 
