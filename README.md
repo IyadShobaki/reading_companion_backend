@@ -28,7 +28,7 @@ Express API for Reading Companion. The backend handles authentication, profile d
 | openai                                 | OpenAI integration           |
 | Jest, Supertest, mongodb-memory-server | Backend tests                |
 
-Current documented test baseline: 16 Jest suites, 151 tests.
+Current documented test baseline: 16 Jest suites, 144 tests.
 
 ## Setup
 

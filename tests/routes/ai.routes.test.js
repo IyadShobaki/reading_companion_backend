@@ -85,8 +85,8 @@ const describeAuthAndValidation = (endpoint, payload) => {
 
   test("returns 400 when googleBookId is missing", async () => {
     const token = await getToken();
-    // eslint-disable-next-line no-unused-vars
-    const { googleBookId, ...body } = payload;
+    const body = { ...payload };
+    delete body.googleBookId;
     const res = await request(app)
       .post(endpoint)
       .set("Authorization", `Bearer ${token}`)
@@ -96,8 +96,8 @@ const describeAuthAndValidation = (endpoint, payload) => {
 
   test("returns 400 when pageNumber is missing", async () => {
     const token = await getToken();
-    // eslint-disable-next-line no-unused-vars
-    const { pageNumber, ...body } = payload;
+    const body = { ...payload };
+    delete body.pageNumber;
     const res = await request(app)
       .post(endpoint)
       .set("Authorization", `Bearer ${token}`)
