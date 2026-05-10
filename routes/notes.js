@@ -1,6 +1,19 @@
+/**
+ * notes.js — Protected note routes.
+ *
+ * Base path: /api/notes  (mounted by routes/index.js)
+ *
+ * GET    /                  — all notes for the authenticated user (across all books)
+ * GET    /:googleBookId     — all notes for a specific book
+ * POST   /                  — create a new note
+ * PATCH  /:noteId           — update a note (ownership verified in the controller)
+ * DELETE /:noteId           — delete a note (ownership verified in the controller)
+ *
+ * All routes require a valid JWT (enforced by the auth middleware).
+ */
+
 const router = require("express").Router();
 const {
-  getNotesByUser,
   getNotesByBook,
   createNote,
   updateNote,

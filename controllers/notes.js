@@ -1,3 +1,19 @@
+/**
+ * notes.js — Controller for note CRUD operations.
+ *
+ * Handles fetching, creating, updating, and deleting notes scoped to a user
+ * and optionally a specific book. Ownership is verified before any mutation.
+ *
+ * Routes that consume these handlers:
+ *   GET    /api/notes                    → getNotesByUser
+ *   GET    /api/notes/:googleBookId      → getNotesByBook
+ *   POST   /api/notes                    → createNote
+ *   PATCH  /api/notes/:noteId            → updateNote
+ *   DELETE /api/notes/:noteId            → deleteNote
+ *
+ * All functions follow the Express (req, res, next) convention.
+ */
+
 const noteRepository = require("../repositories/note.repository");
 const { OK_CODE, CREATED_CODE } = require("../utils/errors");
 const BadRequestError = require("../utils/errors/BadRequestError");

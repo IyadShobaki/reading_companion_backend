@@ -1,3 +1,17 @@
+/**
+ * library.js — Controller for the authenticated user's saved-book library.
+ *
+ * Handles listing, saving, and removing books from a user's personal library.
+ *
+ * Routes that consume these handlers:
+ *   GET    /api/library                  → getLibrary
+ *   POST   /api/library                  → saveBook
+ *   DELETE /api/library/:googleBookId    → removeBook
+ *
+ * All functions follow the Express (req, res, next) convention.
+ * Ownership is verified before any mutation.
+ */
+
 const savedBookRepository = require("../repositories/savedBook.repository");
 const {
   OK_CODE,
@@ -26,7 +40,10 @@ const getLibrary = async (req, res, next) => {
  */
 const saveBook = async (req, res, next) => {
   try {
-    const book = await savedBookRepository.createForUser(req.user._id, req.body);
+    const book = await savedBookRepository.createForUser(
+      req.user._id,
+      req.body,
+    );
     res.status(CREATED_CODE).send({ data: book });
   } catch (err) {
     if (err.name === "ValidationError") {

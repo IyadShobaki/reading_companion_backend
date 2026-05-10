@@ -1,3 +1,19 @@
+/**
+ * users.js — Controller for user authentication and profile management.
+ *
+ * Handles sign-in, registration, fetching the current user's profile,
+ * and updating profile fields (name, avatar).
+ *
+ * Routes that consume these handlers:
+ *   POST  /api/signin    → login
+ *   POST  /api/signup    → createUser
+ *   GET   /api/users/me  → getCurrentUser
+ *   PATCH /api/users/me  → updateUserProfile
+ *
+ * All functions follow the Express (req, res, next) convention.
+ * Operational errors are forwarded to next() for centralised handling.
+ */
+
 const userRepository = require("../repositories/user.repository");
 const authService = require("../services/auth.service");
 const {

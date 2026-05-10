@@ -1,3 +1,20 @@
+/**
+ * logger.js — Winston-based logging middleware for Express.
+ *
+ * Exports:
+ *   requestLogger — expressWinston middleware that logs every incoming HTTP request.
+ *                    Mount before routes so all requests are captured.
+ *   errorLogger   — expressWinston middleware that logs all errors.
+ *                    Mount after routes but before the error-handler middleware.
+ *   logger        — Plain Winston logger for application-level messages
+ *                    (e.g. DB connection, server startup, controller errors).
+ *
+ * Log output destinations:
+ *   Console    — human-readable format in both environments
+ *   logs/request.log — all HTTP requests (JSON)
+ *   logs/error.log   — all errors (JSON)
+ */
+
 const path = require("path");
 const winston = require("winston");
 const expressWinston = require("express-winston");
@@ -6,8 +23,8 @@ const expressWinston = require("express-winston");
 const requestFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.printf(
-    ({ level, message, timestamp }) => `${timestamp} ${level}: ${message}`
-  )
+    ({ level, message, timestamp }) => `${timestamp} ${level}: ${message}`,
+  ),
 );
 
 // Error logger format: prefer stack trace when available
@@ -15,8 +32,8 @@ const errorFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.printf(
     ({ level, message, meta, timestamp }) =>
-      `${timestamp} ${level}: ${meta.error?.stack || message}`
-  )
+      `${timestamp} ${level}: ${meta.error?.stack || message}`,
+  ),
 );
 
 // Request logger - logs all incoming requests

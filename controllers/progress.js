@@ -1,3 +1,16 @@
+/**
+ * progress.js — Controller for per-book reading progress.
+ *
+ * Handles retrieving and upserting the last-saved page number for a book.
+ * A single PUT endpoint handles both create and update via an upsert operation.
+ *
+ * Routes that consume these handlers:
+ *   GET /api/progress/:googleBookId  → getProgress
+ *   PUT /api/progress/:googleBookId  → saveProgress
+ *
+ * All functions follow the Express (req, res, next) convention.
+ */
+
 const progressRepository = require("../repositories/progress.repository");
 const { OK_CODE } = require("../utils/errors");
 const BadRequestError = require("../utils/errors/BadRequestError");

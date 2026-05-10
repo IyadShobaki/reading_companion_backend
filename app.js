@@ -1,3 +1,22 @@
+/**
+ * app.js — Express application factory and server startup.
+ *
+ * Builds and configures the Express app:
+ *   - Security headers via Helmet
+ *   - CORS restricted to CLIENT_ORIGIN
+ *   - Global rate limiting on every request
+ *   - JSON and URL-encoded body parsing
+ *   - Winston request/error loggers
+ *   - API router mounted at /api
+ *   - Celebrate/Joi validation error handler
+ *   - Centralised error handler
+ *
+ * `main()` connects to MongoDB then starts the HTTP server on PORT.
+ *
+ * Exporting `{ app, main }` separately lets Supertest import the Express app
+ * in tests without triggering a real MongoDB connection.
+ */
+
 const express = require("express");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
