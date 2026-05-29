@@ -47,6 +47,7 @@ const requestLogger = expressWinston.logger({
     }),
   ],
   format: winston.format.json(),
+  headerBlacklist: ["authorization"], // Prevent JWT tokens from appearing in logs
 });
 
 // Error logger - logs all errors

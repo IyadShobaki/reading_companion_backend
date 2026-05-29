@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 
 const userRouter = require("./users");
 const libraryRouter = require("./library");
@@ -12,9 +13,18 @@ const {
   validateUserCreate,
 } = require("../middlewares/validation");
 
+// Stricter rate limiter for auth endpoints — limits brute-force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10,
+  message: "Too many auth attempts from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Public auth routes — no JWT required
-router.post("/signin", validateUserLogin, login);
-router.post("/signup", validateUserCreate, createUser);
+router.post("/signin", authLimiter, validateUserLogin, login);
+router.post("/signup", authLimiter, validateUserCreate, createUser);
 
 // All /users/* routes — JWT required (enforced inside userRouter)
 router.use("/users", userRouter);

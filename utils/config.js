@@ -1,5 +1,5 @@
 // Load server configuration from environment variables with safe defaults.
-// JWT_SECRET is required in production; missing it will crash the process immediately.
+// JWT_SECRET is required in all environments; missing it will crash the process immediately.
 const {
   PORT = 3001,
   MONGODB_URI = "mongodb://127.0.0.1:27017/rc_db",
@@ -13,7 +13,7 @@ const {
 const JWT_SECRET = process.env.JWT_SECRET;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!JWT_SECRET && process.env.NODE_ENV === "production") {
+if (!JWT_SECRET) {
   throw new Error("FATAL: JWT_SECRET environment variable is not set.");
 }
 
@@ -23,7 +23,7 @@ if (!OPENAI_API_KEY && process.env.NODE_ENV === "production") {
 
 module.exports = {
   PORT: parseInt(PORT, 10),
-  JWT_SECRET: JWT_SECRET || "dev-only-secret",
+  JWT_SECRET,
   MONGODB_URI,
   CLIENT_ORIGIN,
   RATE_LIMIT_WINDOW_MS: parseInt(RATE_LIMIT_WINDOW_MS, 10),

@@ -37,9 +37,9 @@ app.use(helmet());
 app.use(cors({ origin: CLIENT_ORIGIN }));
 // Apply rate limiting globally before any route handling
 app.use(limiter);
-// Parse JSON and URL-encoded request bodies
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Parse JSON and URL-encoded request bodies (10 kb limit prevents large-payload DoS)
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 // Request logger - must be before routes
 app.use(requestLogger);
