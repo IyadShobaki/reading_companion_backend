@@ -88,7 +88,8 @@ const callAI = async (prompt) => {
     .create({
       model: MODEL,
       input: prompt,
-      store: true,
+      store: false,
+      max_output_tokens: 1024,
     })
     .then((result) => result.output_text);
 

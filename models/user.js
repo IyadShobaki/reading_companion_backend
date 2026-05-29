@@ -44,8 +44,14 @@ const userSchema = new mongoose.Schema({
     default: "",
     validate: {
       validator(value) {
-        // Allow an empty string (no avatar) or a valid URL
-        return value === "" || validator.isURL(value);
+        // Allow an empty string (no avatar) or a valid http/https URL
+        return (
+          value === "" ||
+          validator.isURL(value, {
+            protocols: ["http", "https"],
+            require_protocol: true,
+          })
+        );
       },
       message: "You must enter a valid URL.",
     },

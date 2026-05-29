@@ -26,11 +26,21 @@ const { errors } = require("celebrate");
 const router = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const { requestLogger, errorLogger, logger } = require("./middlewares/logger");
-const { PORT, MONGODB_URI, CLIENT_ORIGIN } = require("./utils/config");
+const {
+  PORT,
+  MONGODB_URI,
+  CLIENT_ORIGIN,
+  TRUST_PROXY,
+} = require("./utils/config");
 const limiter = require("./middlewares/rateLimiter");
+
+// Enable Mongoose filter sanitization globally to block NoSQL operator-injection attacks
+mongoose.set("sanitizeFilter", true);
 
 const app = express();
 
+// Trust the configured number of reverse-proxy hops so req.ip is accurate for rate limiting
+app.set("trust proxy", TRUST_PROXY);
 // Security headers
 app.use(helmet());
 // Allow requests only from the configured client origin

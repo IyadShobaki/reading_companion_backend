@@ -1,10 +1,9 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../utils/config");
+const { JWT_SECRET, JWT_EXPIRES_IN } = require("../utils/config");
 const UnauthorizedError = require("../utils/errors/UnauthorizedError");
 
 const SALT_ROUNDS = 10;
-const TOKEN_TTL = "7d";
 
 /**
  * Hash a plaintext password before persistence.
@@ -32,7 +31,10 @@ const verifyPassword = async (password, passwordHash) => {
  * @returns {string} Signed JWT.
  */
 const signToken = (userId) =>
-  jwt.sign({ _id: userId }, JWT_SECRET, { expiresIn: TOKEN_TTL });
+  jwt.sign({ _id: userId }, JWT_SECRET, {
+    algorithm: "HS256",
+    expiresIn: JWT_EXPIRES_IN,
+  });
 
 /**
  * Convert a User document into the public API user shape.

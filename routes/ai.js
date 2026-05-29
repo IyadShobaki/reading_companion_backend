@@ -17,7 +17,9 @@ const { ask } = require("../controllers/ai");
 const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: 20,
-  message: "Too many AI requests from this IP, please try again later.",
+  // Key by authenticated user ID so the limit is per-user, not per-IP
+  keyGenerator: (req) => req.user?._id?.toString() ?? req.ip,
+  message: "Too many AI requests, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
 });

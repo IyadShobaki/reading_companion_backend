@@ -76,9 +76,10 @@ const validateUserCreate = strictBody(
       "string.empty": "The email field must be filled in",
       "string.email": "The email field must be a valid email",
     }),
-    password: Joi.string().min(6).required().messages({
+    password: Joi.string().min(6).max(20).required().messages({
       "string.empty": "The password field must be filled in",
       "string.min": "The password field must be at least 6 characters",
+      "string.max": "The password field must be at most 20 characters",
     }),
     name: Joi.string().trim().required().min(2).max(30).messages({
       "string.min": "The minimum length of the name field is 2",
@@ -98,8 +99,9 @@ const validateUserLogin = strictBody(
       "string.empty": "The email field must be filled in",
       "string.email": "The email field must be a valid email",
     }),
-    password: Joi.string().required().messages({
+    password: Joi.string().max(20).required().messages({
       "string.empty": "The password field must be filled in",
+      "string.max": "The password field must be at most 20 characters",
     }),
   }),
 );

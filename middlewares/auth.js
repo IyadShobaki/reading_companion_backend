@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { Types } = require("mongoose");
 const { JWT_SECRET } = require("../utils/config");
 const UnauthorizedError = require("../utils/errors/UnauthorizedError");
 
@@ -19,8 +20,12 @@ module.exports = (req, res, next) => {
   let payload;
 
   try {
-    payload = jwt.verify(token, JWT_SECRET);
+    payload = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
   } catch {
+    return next(new UnauthorizedError("Authorization required"));
+  }
+
+  if (!Types.ObjectId.isValid(payload._id)) {
     return next(new UnauthorizedError("Authorization required"));
   }
 

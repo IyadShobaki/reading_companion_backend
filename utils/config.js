@@ -8,7 +8,17 @@ const {
   RATE_LIMIT_MAX_REQUESTS = 100, // max 100 requests per window - dev env
   RATE_LIMIT_MESSAGE = "Too many requests from this IP, please try again later.",
   AI_TIMEOUT_MS = 15000,
+  JWT_EXPIRES_IN = "24h",
 } = process.env;
+
+// Parse TRUST_PROXY: supports boolean strings ("true"/"false") or a hop-count number
+const rawProxy = process.env.TRUST_PROXY ?? "0";
+const TRUST_PROXY =
+  rawProxy === "true"
+    ? true
+    : rawProxy === "false"
+      ? false
+      : parseInt(rawProxy, 10) || 0;
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -24,8 +34,10 @@ if (!OPENAI_API_KEY && process.env.NODE_ENV === "production") {
 module.exports = {
   PORT: parseInt(PORT, 10),
   JWT_SECRET,
+  JWT_EXPIRES_IN,
   MONGODB_URI,
   CLIENT_ORIGIN,
+  TRUST_PROXY,
   RATE_LIMIT_WINDOW_MS: parseInt(RATE_LIMIT_WINDOW_MS, 10),
   RATE_LIMIT_MAX_REQUESTS: parseInt(RATE_LIMIT_MAX_REQUESTS, 10),
   RATE_LIMIT_MESSAGE,

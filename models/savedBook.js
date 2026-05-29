@@ -47,7 +47,13 @@ const savedBookSchema = new mongoose.Schema({
     default: "",
     validate: {
       validator(value) {
-        return value === "" || validator.isURL(value);
+        return (
+          value === "" ||
+          validator.isURL(value, {
+            protocols: ["http", "https"],
+            require_protocol: true,
+          })
+        );
       },
       message: "thumbnail must be a valid URL.",
     },
