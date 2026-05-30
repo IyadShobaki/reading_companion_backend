@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "celebrate": "^12.1.2",
+    "celebrate": "^15.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

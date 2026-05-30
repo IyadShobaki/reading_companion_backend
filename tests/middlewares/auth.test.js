@@ -31,12 +31,15 @@ const makeReqResNext = (headers = {}) => {
   return { req, res, next };
 };
 
+// A valid MongoDB ObjectId used as the default test user id
+const TEST_USER_ID = "507f1f77bcf86cd799439011";
+
 /** Sign a token that expires in 1 hour. */
-const signToken = (payload = { _id: "user123" }) =>
+const signToken = (payload = { _id: TEST_USER_ID }) =>
   jwt.sign(payload, SECRET, { expiresIn: "1h" });
 
 /** Sign a token that is already expired. */
-const signExpired = (payload = { _id: "user123" }) =>
+const signExpired = (payload = { _id: TEST_USER_ID }) =>
   jwt.sign(payload, SECRET, { expiresIn: "-1s" });
 
 describe("auth middleware", () => {
@@ -79,11 +82,11 @@ describe("auth middleware", () => {
 
   test("attaches the JWT payload to req.user and calls next() with no error for a valid token", () => {
     const { req, res, next } = makeReqResNext({
-      authorization: `Bearer ${signToken({ _id: "abc" })}`,
+      authorization: `Bearer ${signToken({ _id: TEST_USER_ID })}`,
     });
     authMiddleware(req, res, next);
     // next() should have been called with no arguments
     expect(next).toHaveBeenCalledWith();
-    expect(req.user).toMatchObject({ _id: "abc" });
+    expect(req.user).toMatchObject({ _id: TEST_USER_ID });
   });
 });
