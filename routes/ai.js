@@ -8,7 +8,7 @@
  */
 
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const auth = require("../middlewares/auth");
 const { validateAiAsk } = require("../middlewares/validation");
 const { ask } = require("../controllers/ai");
@@ -17,8 +17,9 @@ const { ask } = require("../controllers/ai");
 const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: 20,
-  // Key by authenticated user ID so the limit is per-user, not per-IP
-  keyGenerator: (req) => req.user?._id?.toString() ?? req.ip,
+  // Key by authenticated user ID so the limit is per-user, not per-IP.
+  // Falls back to ipKeyGenerator (IPv6-safe) rather than raw req.ip.
+  keyGenerator: (req) => req.user?._id?.toString() ?? ipKeyGenerator(req),
   message: "Too many AI requests, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,

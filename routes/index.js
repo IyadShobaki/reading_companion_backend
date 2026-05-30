@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const userRouter = require("./users");
 const libraryRouter = require("./library");
@@ -17,6 +17,7 @@ const {
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 10,
+  keyGenerator: ipKeyGenerator,
   message: "Too many auth attempts from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
